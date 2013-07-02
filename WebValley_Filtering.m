@@ -5,46 +5,144 @@ close all
 %imName = 'HeLa13166-1.png';
 %imName = 'Abraham_Lincoln_small.png';
 imName = 'Lincoln_1863.png';
-J = imread(imName);
-I = mat2gray(J);
+tempImage = imread(imName);
+I = mat2gray(tempImage);
 
 imshow(I)
 title('original')
 figure
 
+exampletype = 2;
 
-% 1. Point processing examples
-% show inverse image
-J = 1-I;
-imshow(J)
-title('inverse')
+switch exampletype
+    case 1
+        %-----------------------------------------------------
+        % 1. Point processing examples
+        % show flipped image (the for-loop way)
+        [R,C] = size(I);
+        for r = 1:R
+            for c = 1:C
+                J(r,c) = I(r,C+1-c);
+            end
+        end
+        imshow(J)
+        title('inverse')
+        
+        % show flipped image (the Matlab way)
+        sz = size(I);
+        J = I(:,sz(2):-1:1);
+        imshow(J)
+        title('flip')
+        
+        J = 1-I;
+        imshow(J)
+        title('inverse')
+        
+        % show log transform
+        J = log(1+10*I);
+        imshow (J)
+        title('saturation')
+        
+        % show thresholding
+        J = (I>1/2);
+        imshow (J)
+        title('threshold')
+        
+        % show notch threshold
+        mk = I>.3 & I<.5;
+        J(mk) = I(mk);
+        J(~mk) = 0;
+        imshow (J)
+        title('notch threshold')
+        
+    case 2
+        %-----------------------------------------------------
+        % 2. Linear neighborhood processing examples
+        % average (the for-loop way)
+        % get dimensions (Row, Column) of image
+        SimpleImage = ones(5);
+        SimpleImage(3,3) = 2;
+        J = zeros(size(SimpleImage));
+        
+        D = size(SimpleImage);
+        R = D(1); C = D(2);
 
-% show flipped image
-sz = size(I);
-J = I(:,sz(2):-1:1);
-imshow(J)
-title('flip')
+        W = 3;
+        ker = 1/W^2*ones(W);
+        HW = round((W-1)/2);    % half width
+        
+        for r = 1+HW:R-HW
+            for c = 1+HW:C-HW
+                [r, c]
+                SimpleImage(r+HW+1-[1:W],c+HW+1-[1:W])
+                ker
+                for i = 1:W
+                    for j = 1:W
+                        J(r,c) = J(r,c) + SimpleImage(r-i+HW+1,c-j+HW+1)*ker(i, j);
+                    end
+                end
+            end
+        end
+        imshow(J)
+        title('average filter')
+        
+        % average (the Matlab way)
+        ker = ones(10);
+        ker = ker/sum(sum(ker));
+        J = imfilter(I,ker);
+        imshow(J)
+        title('average filter')
+        
+        ker = fspecial('gaussian',[5 5],1);
+        J = imfilter(I,ker);
+        imshow(J)
+        title('Gaussian filter')
+        
+        ker = fspecial('motion',20,05)
+        J = imfilter(I,ker);
+        imshow(J)
+        title('motion blur')
+        
+        ker = [-1 0 1; -1 0 1; -1 0 1];
+        Jx = imfilter(I,ker);
+        imshow(Jx)
+        title('change filter')
+        
+        ker = [-1 -1 -1; 0 0 0; 1 1 1];
+        Jy = imfilter(I,ker);
+        Jtot = abs(Jx)+abs(Jy);
+        imshow(Jtot)
+        title('magnitude of changes filter')
+        
+    case 3
+        %-----------------------------------------------------
+        % 3. Nonlinear neighborhood processing examples
+        med = @(x) median(x(:));
+        J = nlfilter(I,[5 5],med);
+        imshow(J)
+        title('median filter')
+        
+        med = @(x) prctile(x(:),0.1);
+        J = nlfilter(I,[5 5],med);
+        imshow(J)
+        title('percentile filter')
+        
+        figure
+        subplot(1,3,1)
+        T = (I>1/2);
+        imshow (T)
+        title('threshold')
+        
+        subplot(1,3,2)
+        erode = @(x) min(x(:));
+        J = nlfilter(T,[5 5],erode);
+        imshow(J)
+        title('erode filter')
+        
+        subplot(1,3,3)
+        dilate = @(x) max(x(:));
+        J = nlfilter(T,[5 5],dilate);
+        imshow(J)
+        title('dilate filter')
+end
 
-% show log transform
-J = log(1+10*I);
-imshow (J)
-title('saturation')
-
-% show thresholding
-J = (I>1/2);
-imshow (J)
-title('threshold')
-
-% show notch threshold
-mk = I>.3 & I<.5;
-J(mk) = I(mk);
-J(~mk) = 0;
-imshow (J)
-title('notch threshold')
-
-% 2. Neighborhood processing examples
-ker = ones(3);
-ker = ker/sum(sum(ker));
-J = filter2(ker,I);
-imshow(J)
-title('filtered')
